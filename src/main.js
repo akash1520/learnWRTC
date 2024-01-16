@@ -13,14 +13,7 @@ import {
   deleteDoc
 } from "firebase/firestore";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyASx-LMcLeOWHasC4tN6Pa7o5tixgd2J-4",
-  authDomain: "learnwebrtc-518a7.firebaseapp.com",
-  projectId: "learnwebrtc-518a7",
-  storageBucket: "learnwebrtc-518a7.appspot.com",
-  messagingSenderId: "136987443781",
-  appId: "1:136987443781:web:eff3690148a33fa9ca192c",
-};
+
 
 let app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
@@ -55,8 +48,8 @@ const hangupButton = document.getElementById("hangupButton");
 
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({
-    video: { width: { min: 1280 }, height: { min: 720 } },
-    audio: { noiseSuppression: true, echoCancellation: true },
+    video: true,
+    audio: true,
   });
   remoteStream = new MediaStream();
 
