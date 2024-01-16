@@ -62,8 +62,8 @@ async function listAudioDevices() {
 webcamButton.onclick = async () => {
   await listAudioDevices(); // List and possibly select the right device
   localStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true,
+    video: { width: { min: 1280 }, height: { min: 720 } },
+    audio: { noiseSuppression: true, echoCancellation: true },
   });
   remoteStream = new MediaStream();
 
