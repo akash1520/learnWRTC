@@ -10,10 +10,15 @@ import {
   addDoc,
   updateDoc,
   getDoc,
-  deleteDoc
+  deleteDoc,
 } from "firebase/firestore";
 
-
+async function listAudioDevices() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const audioDevices = devices.filter((device) => device.kind === "audioinput");
+  console.log("Audio Input Devices:", audioDevices);
+  // You can add logic here to select a specific device if necessary
+}
 
 let app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
@@ -34,7 +39,6 @@ let remoteStream = null;
 
 let hangCallDoc = null;
 
-
 // HTML elements
 const webcamButton = document.getElementById("webcamButton");
 const webcamVideo = document.getElementById("webcamVideo");
@@ -47,30 +51,35 @@ const hangupButton = document.getElementById("hangupButton");
 // 1. Setup media sources
 
 webcamButton.onclick = async () => {
-  localStream = await navigator.mediaDevices.getUserMedia({
-    video: true,
-    audio: true,
-  });
-  remoteStream = new MediaStream();
-
-  // Push tracks from local stream to peer connection
-  localStream.getTracks().forEach((track) => {
-    pc.addTrack(track, localStream);
-  });
-
-  // Pull tracks from remote stream, add to video stream
-  pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
+  await listAudioDevices();
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
     });
-  };
+    remoteStream = new MediaStream();
 
-  webcamVideo.srcObject = localStream;
-  remoteVideo.srcObject = remoteStream;
+    // Push tracks from local stream to peer connection
+    localStream.getTracks().forEach((track) => {
+      pc.addTrack(track, localStream);
+    });
 
-  callButton.disabled = false;
-  answerButton.disabled = false;
-  webcamButton.disabled = true;
+    // Pull tracks from remote stream, add to video stream
+    pc.ontrack = (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+        remoteStream.addTrack(track);
+      });
+    };
+
+    webcamVideo.srcObject = localStream;
+    remoteVideo.srcObject = remoteStream;
+
+    callButton.disabled = false;
+    answerButton.disabled = false;
+    webcamButton.disabled = true;
+  } catch (e) {
+    console.error("Error accessing media devices:", e);
+  }
 };
 
 // 2. Create an offer
@@ -96,7 +105,7 @@ callButton.onclick = async () => {
     type: offerDescription.type,
   };
 
-  await setDoc(callDoc, { offer, callActive: true }); 
+  await setDoc(callDoc, { offer, callActive: true });
 
   // Listen for remote answer
   onSnapshot(callDoc, (snapshot) => {
@@ -145,8 +154,7 @@ answerButton.onclick = async () => {
   };
 
   await updateDoc(callDoc, { answer });
- hangCallDoc = callDoc;
-
+  hangCallDoc = callDoc;
 
   onSnapshot(offerCandidates, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
@@ -189,7 +197,6 @@ const hangupCall = async () => {
   webcamButton.disabled = false;
 };
 
-
 hangupButton.onclick = async () => {
   const callId = callInput.value;
   const callDoc = doc(firestore, "calls", callId);
@@ -207,12 +214,13 @@ hangupButton.onclick = async () => {
 
 setInterval(() => {
   // Listen for call hangup
-  if(hangCallDoc){
-  onSnapshot(hangCallDoc, (snapshot) => {
-    const data = snapshot.data();
-    console.log(data.callActive);
-    if (data && !data.callActive) {
-      hangupCall();
-    }
-  });}
+  if (hangCallDoc) {
+    onSnapshot(hangCallDoc, (snapshot) => {
+      const data = snapshot.data();
+      console.log(data.callActive);
+      if (data && !data.callActive) {
+        hangupCall();
+      }
+    });
+  }
 }, 1000);
