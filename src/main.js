@@ -10,10 +10,17 @@ import {
   addDoc,
   updateDoc,
   getDoc,
-  deleteDoc
+  deleteDoc,
 } from "firebase/firestore";
 
-
+const firebaseConfig = {
+  apiKey: "AIzaSyASx-LMcLeOWHasC4tN6Pa7o5tixgd2J-4",
+  authDomain: "learnwebrtc-518a7.firebaseapp.com",
+  projectId: "learnwebrtc-518a7",
+  storageBucket: "learnwebrtc-518a7.appspot.com",
+  messagingSenderId: "136987443781",
+  appId: "1:136987443781:web:eff3690148a33fa9ca192c",
+};
 
 let app = initializeApp(firebaseConfig);
 const firestore = getFirestore(app);
@@ -34,7 +41,6 @@ let remoteStream = null;
 
 let hangCallDoc = null;
 
-
 // HTML elements
 const webcamButton = document.getElementById("webcamButton");
 const webcamVideo = document.getElementById("webcamVideo");
@@ -44,12 +50,20 @@ const answerButton = document.getElementById("answerButton");
 const remoteVideo = document.getElementById("remoteVideo");
 const hangupButton = document.getElementById("hangupButton");
 
+async function listAudioDevices() {
+  const devices = await navigator.mediaDevices.enumerateDevices();
+  const audioDevices = devices.filter((device) => device.kind === "audioinput");
+  console.log("Audio Input Devices:", audioDevices);
+  // You can add logic here to select a specific device if necessary
+}
+
 // 1. Setup media sources
 
 webcamButton.onclick = async () => {
+  await listAudioDevices(); // List and possibly select the right device
   localStream = await navigator.mediaDevices.getUserMedia({
-    video: { width: { min: 1280 }, height: { min: 720 } },
-    audio: { echoCancellation: true },
+    video: true,
+    audio: true,
   });
   remoteStream = new MediaStream();
 
@@ -96,7 +110,7 @@ callButton.onclick = async () => {
     type: offerDescription.type,
   };
 
-  await setDoc(callDoc, { offer, callActive: true }); 
+  await setDoc(callDoc, { offer, callActive: true });
 
   // Listen for remote answer
   onSnapshot(callDoc, (snapshot) => {
@@ -145,8 +159,7 @@ answerButton.onclick = async () => {
   };
 
   await updateDoc(callDoc, { answer });
- hangCallDoc = callDoc;
-
+  hangCallDoc = callDoc;
 
   onSnapshot(offerCandidates, (snapshot) => {
     snapshot.docChanges().forEach((change) => {
@@ -189,7 +202,6 @@ const hangupCall = async () => {
   webcamButton.disabled = false;
 };
 
-
 hangupButton.onclick = async () => {
   const callId = callInput.value;
   const callDoc = doc(firestore, "calls", callId);
@@ -207,12 +219,13 @@ hangupButton.onclick = async () => {
 
 setInterval(() => {
   // Listen for call hangup
-  if(hangCallDoc){
-  onSnapshot(hangCallDoc, (snapshot) => {
-    const data = snapshot.data();
-    console.log(data.callActive);
-    if (data && !data.callActive) {
-      hangupCall();
-    }
-  });}
+  if (hangCallDoc) {
+    onSnapshot(hangCallDoc, (snapshot) => {
+      const data = snapshot.data();
+      console.log(data.callActive);
+      if (data && !data.callActive) {
+        hangupCall();
+      }
+    });
+  }
 }, 1000);
